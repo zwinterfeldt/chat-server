@@ -2,8 +2,8 @@ import socket
 import threading
 
 SERVER_HOST = '127.0.0.1'
-TCP_PORT = 5555
-UDP_PORT = 5556
+TCP_PORT = 6091
+UDP_PORT = 6092
 
 def tcp_receive(sock):
     while True:
