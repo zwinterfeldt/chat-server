@@ -2,8 +2,8 @@ import socket
 import threading
 
 HOST = '0.0.0.0'
-TCP_PORT = 5555
-UDP_PORT = 5556
+TCP_PORT = 6091
+UDP_PORT = 6092
 
 def handle_tcp_client(client_socket, addr):
     # This function will parse incoming messages from one client
@@ -19,7 +19,7 @@ def handle_tcp_client(client_socket, addr):
         except ConnectionResetError:
             break
 
-    # Cleanup logic when the client disconnects
+    # For when client disconnects
     client_socket.close()
 
 def start_tcp_server():
@@ -33,6 +33,7 @@ def start_tcp_server():
         print(f"New connection: {addr}")
         threading.Thread(target=handle_tcp_client, args=(client_socket, addr)).start()
 
+# Essentially same logic as TCP server
 def start_udp_server():
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind((HOST, UDP_PORT))
