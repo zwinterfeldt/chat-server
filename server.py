@@ -1,9 +1,12 @@
 import socket
 import threading
+import time
 
-HOST = '0.0.0.0'
+HOST = '127.0.0.1'
 TCP_PORT = 6091
 UDP_PORT = 6092
+online_users = {}  
+TIMEOUT = 300 
 
 # Dictionary to keep track of connected clients: { username: socket }
 connected_clients = {}
@@ -91,6 +94,9 @@ def handle_tcp_client(client_socket, addr):
                     client_socket.sendall(b"GOODBYE\n")
                     break  # exit while loop to close socket
 
+                elif cmd == "STATUS":
+                    handle_udp_client()
+
                 else:
                     client_socket.sendall(b"ERROR: Unknown command.\n")
 
@@ -125,6 +131,46 @@ def start_tcp_server():
         print(f"New connection: {addr}")
         threading.Thread(target=handle_tcp_client, args=(client_socket, addr)).start()
 
+def handle_udp_client():
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.bind((HOST, UDP_PORT))
+    print(f"UDP server listening on port {UDP_PORT}...")
+
+    while True:
+        try:
+            data, addr = udp_socket.recvfrom(1024)  # Receive message and sender address
+            message = data.decode('utf-8').strip()
+            print(f"Received UDP from {addr}: {message}")
+
+            if not message:
+                continue
+
+            parts = message.split(' ', 2)
+            cmd = parts[0].upper()
+
+            if cmd == "STATUS" and len(parts) == 1:
+                # Request for online users list
+                remove_inactive_users()
+                response = "Online users: " + ", ".join(online_users.keys()) if online_users else "No users online."
+                udp_socket.sendto(response.encode('utf-8'), addr)
+
+            elif cmd == "STATUS" and len(parts) == 3:
+                # Update user status
+                username, status = parts[1], parts[2].lower()
+                if status == "online":
+                    online_users[username] = time.time()  # Update timestamp
+                    udp_socket.sendto(f"{username} is now online.".encode('utf-8'), addr)
+                elif status == "offline":
+                    online_users.pop(username, None)  # Remove from online list
+                    udp_socket.sendto(f"{username} is now offline.".encode('utf-8'), addr)
+                else:
+                    udp_socket.sendto("ERROR: Invalid status. Use 'online' or 'offline'.".encode('utf-8'), addr)
+
+            else:
+                udp_socket.sendto("ERROR: Unknown command.".encode('utf-8'), addr)
+
+        except Exception as e:
+            print(f"Error handling UDP client {addr}: {e}")
 
 def start_udp_server():
     # This minimal UDP server just prints incoming messages
@@ -139,6 +185,16 @@ def start_udp_server():
         print(f"UDP from {addr}: {message}")
         # For example, parse if it’s "STATUS <username> <online/offline>"
         # Or handle additional logic as desired.
+        handle_udp_client()
+       
+
+def remove_inactive_users():
+    """Remove users who have been inactive for more than TIMEOUT seconds."""
+    current_time = time.time()
+    inactive_users = [user for user, last_seen in online_users.items() if current_time - last_seen > TIMEOUT]
+    for user in inactive_users:
+        del online_users[user]
+
 
 
 if __name__ == "__main__":
