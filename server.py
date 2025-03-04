@@ -3,9 +3,9 @@ import threading
 
 # Server configuration
 TCP_IP = '127.0.0.1'
-TCP_PORT = 5000
+TCP_PORT = 12345
 UDP_IP = '127.0.0.1'
-UDP_PORT = 5001
+UDP_PORT = 12346
 
 # A dictionary to track connected users: username -> (tcp_conn, address, user_id)
 clients = {}
